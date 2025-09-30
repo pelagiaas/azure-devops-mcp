@@ -20,7 +20,20 @@ function filterProjectsByName(projects: ProjectInfo[], projectNameFilter: string
   return projects.filter((project) => project.name?.toLowerCase().includes(lowerCaseFilter));
 }
 
-function configureCoreTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
+function configureCoreTools(
+  server: McpServer,
+  tokenProvider: () => Promise<string>,
+  authorizationHeaderProviderOrConnectionProvider: (() => Promise<string>) | (() => Promise<WebApi>),
+  connectionProviderOrUserAgentProvider?: (() => Promise<WebApi>) | (() => string),
+  maybeUserAgentProvider?: () => string
+) {
+  const authorizationHeaderProvider = maybeUserAgentProvider ? (authorizationHeaderProviderOrConnectionProvider as () => Promise<string>) : async () => `Bearer ${await tokenProvider()}`;
+
+  const connectionProvider = (
+    maybeUserAgentProvider ? (connectionProviderOrUserAgentProvider as () => Promise<WebApi>) : (authorizationHeaderProviderOrConnectionProvider as () => Promise<WebApi>)
+  ) as () => Promise<WebApi>;
+
+  const userAgentProvider = maybeUserAgentProvider ? maybeUserAgentProvider : ((connectionProviderOrUserAgentProvider as (() => string) | undefined) ?? (() => ""));
   server.tool(
     CORE_TOOLS.list_project_teams,
     "Retrieve a list of teams for the specified Azure DevOps project.",
@@ -98,7 +111,7 @@ function configureCoreTools(server: McpServer, tokenProvider: () => Promise<stri
     },
     async ({ searchFilter }) => {
       try {
-        const identities = await searchIdentities(searchFilter, tokenProvider, connectionProvider, userAgentProvider);
+        const identities = await searchIdentities(searchFilter, authorizationHeaderProvider, connectionProvider, userAgentProvider);
 
         if (!identities || identities.value?.length === 0) {
           return { content: [{ type: "text", text: "No identities found" }], isError: true };

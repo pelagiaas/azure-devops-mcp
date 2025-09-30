@@ -1,6 +1,17 @@
 import { AzureCliCredential, ChainedTokenCredential, DefaultAzureCredential, TokenCredential } from "@azure/identity";
 import { AccountInfo, AuthenticationResult, PublicClientApplication } from "@azure/msal-node";
+import { Buffer } from "node:buffer";
 import open from "open";
+
+const PAT_ENV_VARIABLE = "AZURE_DEVOPS_PAT";
+
+type AuthenticationKind = "aad" | "pat";
+
+interface Authenticator {
+  kind: AuthenticationKind;
+  getToken: () => Promise<string>;
+  getAuthorizationHeader: () => Promise<string>;
+}
 
 const scopes = ["499b84ac-1321-427f-aa17-267ca6975798/.default"];
 
@@ -50,10 +61,24 @@ class OAuthAuthenticator {
   }
 }
 
-function createAuthenticator(type: string, tenantId?: string): () => Promise<string> {
+function createAuthenticator(type: string, tenantId?: string): Authenticator {
   switch (type) {
+    case "pat": {
+      const personalAccessToken = process.env[PAT_ENV_VARIABLE];
+      if (!personalAccessToken) {
+        throw new Error(`Personal Access Token authentication requires the ${PAT_ENV_VARIABLE} environment variable to be set.`);
+      }
+      const basicAuthHeader = `Basic ${Buffer.from(`:${personalAccessToken}`).toString("base64")}`;
+      const getToken = async () => personalAccessToken;
+      const getAuthorizationHeader = async () => basicAuthHeader;
+      return {
+        kind: "pat",
+        getToken,
+        getAuthorizationHeader,
+      };
+    }
     case "azcli":
-    case "env":
+    case "env": {
       if (type !== "env") {
         process.env.AZURE_TOKEN_CREDENTIALS = "dev";
       }
@@ -63,19 +88,32 @@ function createAuthenticator(type: string, tenantId?: string): () => Promise<str
         const azureCliCredential = new AzureCliCredential({ tenantId });
         credential = new ChainedTokenCredential(azureCliCredential, credential);
       }
-      return async () => {
+      const getToken = async () => {
         const result = await credential.getToken(scopes);
         if (!result) {
           throw new Error("Failed to obtain Azure DevOps token. Ensure you have Azure CLI logged or use interactive type of authentication.");
         }
         return result.token;
       };
+      return {
+        kind: "aad",
+        getToken,
+        getAuthorizationHeader: async () => `Bearer ${await getToken()}`,
+      };
+    }
 
-    default:
+    default: {
       const authenticator = new OAuthAuthenticator(tenantId);
-      return () => {
+      const getToken = () => {
         return authenticator.getToken();
       };
+      return {
+        kind: "aad",
+        getToken,
+        getAuthorizationHeader: async () => `Bearer ${await getToken()}`,
+      };
+    }
   }
 }
 export { createAuthenticator };
+export type { Authenticator };

@@ -22,7 +22,20 @@ const PIPELINE_TOOLS = {
   pipelines_run_pipeline: "pipelines_run_pipeline",
 };
 
-function configurePipelineTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
+function configurePipelineTools(
+  server: McpServer,
+  tokenProvider: () => Promise<string>,
+  authorizationHeaderProviderOrConnectionProvider: (() => Promise<string>) | (() => Promise<WebApi>),
+  connectionProviderOrUserAgentProvider?: (() => Promise<WebApi>) | (() => string),
+  maybeUserAgentProvider?: () => string
+) {
+  const authorizationHeaderProvider = maybeUserAgentProvider ? (authorizationHeaderProviderOrConnectionProvider as () => Promise<string>) : async () => `Bearer ${await tokenProvider()}`;
+
+  const connectionProvider = (
+    maybeUserAgentProvider ? (connectionProviderOrUserAgentProvider as () => Promise<WebApi>) : (authorizationHeaderProviderOrConnectionProvider as () => Promise<WebApi>)
+  ) as () => Promise<WebApi>;
+
+  const userAgentProvider = maybeUserAgentProvider ? maybeUserAgentProvider : ((connectionProviderOrUserAgentProvider as (() => string) | undefined) ?? (() => ""));
   server.tool(
     PIPELINE_TOOLS.pipelines_get_build_definitions,
     "Retrieves a list of build definitions for a given project.",
@@ -422,7 +435,7 @@ function configurePipelineTools(server: McpServer, tokenProvider: () => Promise<
       const connection = await connectionProvider();
       const orgUrl = connection.serverUrl;
       const endpoint = `${orgUrl}/${project}/_apis/build/builds/${buildId}/stages/${stageName}?api-version=${apiVersion}`;
-      const token = await tokenProvider();
+      const authorizationHeader = await authorizationHeaderProvider();
 
       const body = {
         forceRetryAllJobs: forceRetryAllJobs,
@@ -433,7 +446,7 @@ function configurePipelineTools(server: McpServer, tokenProvider: () => Promise<
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          "Authorization": authorizationHeader,
           "User-Agent": userAgentProvider(),
         },
         body: JSON.stringify(body),

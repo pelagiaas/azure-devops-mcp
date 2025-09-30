@@ -9,7 +9,7 @@ import * as azdev from "azure-devops-node-api";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 
-import { createAuthenticator } from "./auth.js";
+import { createAuthenticator, type Authenticator } from "./auth.js";
 import { getOrgTenant } from "./org-tenants.js";
 import { configurePrompts } from "./prompts.js";
 import { configureAllTools } from "./tools.js";
@@ -44,9 +44,9 @@ const argv = yargs(hideBin(process.argv))
   })
   .option("authentication", {
     alias: "a",
-    describe: "Type of authentication to use. Supported values are 'interactive', 'azcli' and 'env' (default: 'interactive')",
+    describe: "Type of authentication to use. Supported values are 'interactive', 'azcli', 'env', and 'pat' (default: 'interactive')",
     type: "string",
-    choices: ["interactive", "azcli", "env"],
+    choices: ["interactive", "azcli", "env", "pat"],
     default: defaultAuthenticationType,
   })
   .option("tenant", {
@@ -63,10 +63,16 @@ const orgUrl = "https://dev.azure.com/" + orgName;
 const domainsManager = new DomainsManager(argv.domains);
 export const enabledDomains = domainsManager.getEnabledDomains();
 
-function getAzureDevOpsClient(getAzureDevOpsToken: () => Promise<string>, userAgentComposer: UserAgentComposer): () => Promise<azdev.WebApi> {
+function getAzureDevOpsClient(authenticator: Authenticator, userAgentComposer: UserAgentComposer): () => Promise<azdev.WebApi> {
   return async () => {
-    const accessToken = await getAzureDevOpsToken();
-    const authHandler = azdev.getBearerHandler(accessToken);
+    let authHandler;
+    if (authenticator.kind === "pat") {
+      const personalAccessToken = await authenticator.getToken();
+      authHandler = azdev.getPersonalAccessTokenHandler(personalAccessToken);
+    } else {
+      const accessToken = await authenticator.getToken();
+      authHandler = azdev.getBearerHandler(accessToken);
+    }
     const connection = new azdev.WebApi(orgUrl, authHandler, undefined, {
       productName: "AzureDevOps.MCP",
       productVersion: packageVersion,
@@ -88,10 +94,12 @@ async function main() {
   };
   const tenantId = (await getOrgTenant(orgName)) ?? argv.tenant;
   const authenticator = createAuthenticator(argv.authentication, tenantId);
+  const tokenProvider = () => authenticator.getToken();
+  const authorizationHeaderProvider = () => authenticator.getAuthorizationHeader();
 
   configurePrompts(server);
 
-  configureAllTools(server, authenticator, getAzureDevOpsClient(authenticator, userAgentComposer), () => userAgentComposer.userAgent, enabledDomains);
+  configureAllTools(server, tokenProvider, authorizationHeaderProvider, getAzureDevOpsClient(authenticator, userAgentComposer), () => userAgentComposer.userAgent, enabledDomains);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

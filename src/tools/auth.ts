@@ -9,14 +9,14 @@ interface IdentitiesResponse {
   value: IdentityBase[];
 }
 
-async function getCurrentUserDetails(tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
+async function getCurrentUserDetails(authorizationHeaderProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
   const connection = await connectionProvider();
   const url = `${connection.serverUrl}/_apis/connectionData`;
-  const token = await tokenProvider();
+  const authorizationHeader = await authorizationHeaderProvider();
   const response = await fetch(url, {
     method: "GET",
     headers: {
-      "Authorization": `Bearer ${token}`,
+      "Authorization": authorizationHeader,
       "Content-Type": "application/json",
       "User-Agent": userAgentProvider(),
     },
@@ -31,8 +31,13 @@ async function getCurrentUserDetails(tokenProvider: () => Promise<string>, conne
 /**
  * Searches for identities using Azure DevOps Identity API
  */
-async function searchIdentities(identity: string, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string): Promise<IdentitiesResponse> {
-  const token = await tokenProvider();
+async function searchIdentities(
+  identity: string,
+  authorizationHeaderProvider: () => Promise<string>,
+  connectionProvider: () => Promise<WebApi>,
+  userAgentProvider: () => string
+): Promise<IdentitiesResponse> {
+  const authorizationHeader = await authorizationHeaderProvider();
   const connection = await connectionProvider();
   const orgName = connection.serverUrl.split("/")[3];
   const baseUrl = `https://vssps.dev.azure.com/${orgName}/_apis/identities`;
@@ -45,7 +50,7 @@ async function searchIdentities(identity: string, tokenProvider: () => Promise<s
 
   const response = await fetch(`${baseUrl}?${params}`, {
     headers: {
-      "Authorization": `Bearer ${token}`,
+      "Authorization": authorizationHeader,
       "Content-Type": "application/json",
       "User-Agent": userAgentProvider(),
     },
@@ -62,8 +67,8 @@ async function searchIdentities(identity: string, tokenProvider: () => Promise<s
 /**
  * Gets the user ID from email or unique name using Azure DevOps Identity API
  */
-async function getUserIdFromEmail(userEmail: string, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string): Promise<string> {
-  const identities = await searchIdentities(userEmail, tokenProvider, connectionProvider, userAgentProvider);
+async function getUserIdFromEmail(userEmail: string, authorizationHeaderProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string): Promise<string> {
+  const identities = await searchIdentities(userEmail, authorizationHeaderProvider, connectionProvider, userAgentProvider);
 
   if (!identities || identities.value?.length === 0) {
     throw new Error(`No user found with email/unique name: ${userEmail}`);

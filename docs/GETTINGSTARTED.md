@@ -35,14 +35,23 @@ For the best experience, use Visual Studio Code and GitHub Copilot.
 
 #### ✨ One-Click Install
 
-[![Install with NPX in VS Code](https://img.shields.io/badge/VS_Code-Install_AzureDevops_MCP_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=ado&config=%7B%20%22type%22%3A%20%22stdio%22%2C%20%22command%22%3A%20%22npx%22%2C%20%22args%22%3A%20%5B%22-y%22%2C%20%22%40azure-devops%2Fmcp%22%2C%20%22%24%7Binput%3Aado_org%7D%22%5D%7D&inputs=%5B%7B%22id%22%3A%20%22ado_org%22%2C%20%22type%22%3A%20%22promptString%22%2C%20%22description%22%3A%20%22Azure%20DevOps%20organization%20name%20%20%28e.g.%20%27contoso%27%29%22%7D%5D)
-[![Install with NPX in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_AzureDevops_MCP_Server-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=ado&quality=insiders&config=%7B%20%22type%22%3A%20%22stdio%22%2C%20%22command%22%3A%20%22npx%22%2C%20%22args%22%3A%20%5B%22-y%22%2C%20%22%40azure-devops%2Fmcp%22%2C%20%22%24%7Binput%3Aado_org%7D%22%5D%7D&inputs=%5B%7B%22id%22%3A%20%22ado_org%22%2C%20%22type%22%3A%20%22promptString%22%2C%20%22description%22%3A%20%22Azure%20DevOps%20organization%20name%20%20%28e.g.%20%27contoso%27%29%22%7D%5D)
+[![Install with NPX in VS Code](https://img.shields.io/badge/VS_Code-Install_AzureDevops_MCP_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=ado&config=%7B%20%22type%22%3A%20%22stdio%22%2C%20%22command%22%3A%20%22npx%22%2C%20%22args%22%3A%20%5B%22-y%22%2C%20%22%40pelagiaas%2Fazure-devops-mcp%402.2.0-pelagia.0%22%2C%20%22%24%7Binput%3Aado_org%7D%22%5D%7D&inputs=%5B%7B%22id%22%3A%20%22ado_org%22%2C%20%22type%22%3A%20%22promptString%22%2C%20%22description%22%3A%20%22Azure%20DevOps%20organization%20name%20%20%28e.g.%20%27contoso%27%29%22%7D%5D)
+[![Install with NPX in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_AzureDevops_MCP_Server-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=ado&quality=insiders&config=%7B%20%22type%22%3A%20%22stdio%22%2C%20%22command%22%3A%20%22npx%22%2C%20%22args%22%3A%20%5B%22-y%22%2C%20%22%40pelagiaas%2Fazure-devops-mcp%402.2.0-pelagia.0%22%2C%20%22%24%7Binput%3Aado_org%7D%22%5D%7D&inputs=%5B%7B%22id%22%3A%20%22ado_org%22%2C%20%22type%22%3A%20%22promptString%22%2C%20%22description%22%3A%20%22Azure%20DevOps%20organization%20name%20%20%28e.g.%20%27contoso%27%29%22%7D%5D)
 
 After installation, select GitHub Copilot Agent Mode and refresh the tools list. Learn more about Agent Mode in the [VS Code Documentation](https://code.visualstudio.com/docs/copilot/chat/chat-agent-mode).
 
-#### 🧨 Install from Public Feed (Recommended)
+#### 🧨 Install from GitHub Packages (Recommended)
 
-This installation method is the easiest for all users of Visual Studio Code.
+This installation method fetches the forked build published to GitHub Packages.
+
+> ℹ️ **Before you start**: authenticate npm with GitHub Packages (once per machine):
+>
+> ```sh
+> npm config set //npm.pkg.github.com/:_authToken="${GITHUB_TOKEN}"
+> npm config set @pelagiaas:registry https://npm.pkg.github.com
+> ```
+>
+> Use a GitHub token that has `read:packages` scope.
 
 🎥 [Watch this quick start video to get up and running in under two minutes!](https://youtu.be/EUmFM6qXoYk)
 
@@ -62,8 +71,8 @@ In your project, add a `.vscode\mcp.json` file with the following content:
   "servers": {
     "ado": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "${input:ado_org}"]
+  "command": "npx",
+  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
     }
   }
 }
@@ -78,6 +87,42 @@ In chat, switch to [Agent Mode](https://code.visualstudio.com/blogs/2025/02/24/i
 Click "Select Tools" and choose the available tools.
 
 ![configure mcp server tools](../docs/media/configure-mcp-server-tools.gif)
+
+#### 🔐 Authenticate with a Personal Access Token (PAT)
+
+Prefer to skip the interactive sign-in flow? You can launch the MCP server with a Personal Access Token (PAT) instead.
+
+1. **Create a PAT in Azure DevOps**
+   - Go to your Azure DevOps organization, open **User Settings → Personal access tokens**, and select **New Token**.
+   - Choose the organization, set a suitable expiration, and grant scopes that match the tools you plan to use (for a quick start, "Full access" works and can be narrowed later).
+   - Copy the generated token—Azure DevOps will only show it once.
+2. **Store the PAT in an environment variable**
+   - macOS / Linux (temporary for the current shell):
+     ```sh
+     export AZURE_DEVOPS_PAT="<your-token>"
+     ```
+   - Windows PowerShell (temporary for the current session):
+     ```powershell
+     $env:AZURE_DEVOPS_PAT = "<your-token>"
+     ```
+   - Avoid checking the token into source control or sharing it in chat.
+3. **Start the server with PAT auth**
+   - When using `npx`, pass the authentication flag:
+     ```sh
+  npx -y @pelagiaas/azure-devops-mcp@2.2.0-pelagia.0 <your-org> --authentication pat
+     ```
+   - If you're using a `.vscode/mcp.json`, add the flag to the `args` array:
+     ```json
+     {
+       "servers": {
+         "ado": {
+           "type": "stdio",
+           "command": "npx",
+          "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}", "--authentication", "pat"]
+         }
+       }
+     }
+     ```
 
 > 💥 We strongly recommend creating a `.github\copilot-instructions.md` in your project and copying the contents from this [copilot-instructions.md](../.github/copilot-instructions.md) file. This will enhance your experience using the Azure DevOps MCP Server with GitHub Copilot Chat.
 
@@ -118,8 +163,8 @@ Edit or add `.vscode/mcp.json`:
   "servers": {
     "ado": {
       "type": "stdio",
-      "command": "mcp-server-azuredevops",
-      "args": ["${input:ado_org}"]
+  "command": "npx",
+  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
     }
   }
 }
@@ -163,8 +208,8 @@ Add a `.mcp.json` file to the solution folder with the following content:
   "servers": {
     "ado": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "${input:ado_org}"]
+  "command": "npx",
+  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
     }
   }
 }
@@ -202,7 +247,7 @@ See https://docs.anthropic.com/en/docs/claude-code/mcp for general guidance on a
 For the Azure DevOps MCP Server, use the following command:
 
 ```bash
-claude mcp add azure-devops -- npx -y @azure-devops/mcp Contoso
+claude mcp add azure-devops -- npx -y @pelagiaas/azure-devops-mcp@2.2.0-pelagia.0 Contoso
 ```
 
 Replace `Contoso` with your own organization name
@@ -220,7 +265,7 @@ Open the configuration file in your preferred editor (e.g., VS Code) and add the
   "mcpServers": {
     "ado": {
       "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "{Contoso}"]
+  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "{Contoso}"]
     }
   }
 }
@@ -245,7 +290,7 @@ To integrate the Azure DevOps MCP Server with Cursor, create a `.cursor\mcp.json
   "mcpServers": {
     "ado": {
       "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "{Contoso}"]
+  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "{Contoso}"]
     }
   }
 }
@@ -262,7 +307,7 @@ Save the file, and when Cursor detects the MCP Server, click **Enable**.
 Open the terminal and start the MCP Server with:
 
 ```bash
-npx -y @azure-devops/mcp {Contoso}
+npx -y @pelagiaas/azure-devops-mcp@2.2.0-pelagia.0 {Contoso}
 ```
 
 Replace `Contoso` with your Azure DevOps organization.

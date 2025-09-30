@@ -14,7 +14,20 @@ const WIKI_TOOLS = {
   create_or_update_page: "wiki_create_or_update_page",
 };
 
-function configureWikiTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
+function configureWikiTools(
+  server: McpServer,
+  tokenProvider: () => Promise<string>,
+  authorizationHeaderProviderOrConnectionProvider: (() => Promise<string>) | (() => Promise<WebApi>),
+  connectionProviderOrUserAgentProvider?: (() => Promise<WebApi>) | (() => string),
+  maybeUserAgentProvider?: () => string
+) {
+  const authorizationHeaderProvider = maybeUserAgentProvider ? (authorizationHeaderProviderOrConnectionProvider as () => Promise<string>) : async () => `Bearer ${await tokenProvider()}`;
+
+  const connectionProvider = (
+    maybeUserAgentProvider ? (connectionProviderOrUserAgentProvider as () => Promise<WebApi>) : (authorizationHeaderProviderOrConnectionProvider as () => Promise<WebApi>)
+  ) as () => Promise<WebApi>;
+
+  const userAgentProvider = maybeUserAgentProvider ? maybeUserAgentProvider : ((connectionProviderOrUserAgentProvider as (() => string) | undefined) ?? (() => ""));
   server.tool(
     WIKI_TOOLS.get_wiki,
     "Get the wiki by wikiIdentifier",
@@ -161,12 +174,12 @@ function configureWikiTools(server: McpServer, tokenProvider: () => Promise<stri
 
           if (parsed.pageId) {
             try {
-              const accessToken = await tokenProvider();
+              const authorizationHeader = await authorizationHeaderProvider();
               const baseUrl = connection.serverUrl.replace(/\/$/, "");
               const restUrl = `${baseUrl}/${resolvedProject}/_apis/wiki/wikis/${resolvedWiki}/pages/${parsed.pageId}?includeContent=true&api-version=7.1`;
               const resp = await fetch(restUrl, {
                 headers: {
-                  "Authorization": `Bearer ${accessToken}`,
+                  "Authorization": authorizationHeader,
                   "User-Agent": userAgentProvider(),
                 },
               });
@@ -224,7 +237,7 @@ function configureWikiTools(server: McpServer, tokenProvider: () => Promise<stri
     async ({ wikiIdentifier, path, content, project, etag, branch = "wikiMaster" }) => {
       try {
         const connection = await connectionProvider();
-        const accessToken = await tokenProvider();
+        const authorizationHeader = await authorizationHeaderProvider();
 
         // Normalize the path
         const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -240,7 +253,7 @@ function configureWikiTools(server: McpServer, tokenProvider: () => Promise<stri
           const createResponse = await fetch(url, {
             method: "PUT",
             headers: {
-              "Authorization": `Bearer ${accessToken}`,
+              "Authorization": authorizationHeader,
               "Content-Type": "application/json",
               "User-Agent": userAgentProvider(),
             },
@@ -269,7 +282,7 @@ function configureWikiTools(server: McpServer, tokenProvider: () => Promise<stri
               const getResponse = await fetch(url, {
                 method: "GET",
                 headers: {
-                  "Authorization": `Bearer ${accessToken}`,
+                  "Authorization": authorizationHeader,
                   "User-Agent": userAgentProvider(),
                 },
               });
@@ -291,7 +304,7 @@ function configureWikiTools(server: McpServer, tokenProvider: () => Promise<stri
             const updateResponse = await fetch(url, {
               method: "PUT",
               headers: {
-                "Authorization": `Bearer ${accessToken}`,
+                "Authorization": authorizationHeader,
                 "Content-Type": "application/json",
                 "User-Agent": userAgentProvider(),
                 "If-Match": currentEtag,

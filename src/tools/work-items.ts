@@ -61,7 +61,21 @@ function getLinkTypeFromName(name: string) {
   }
 }
 
-function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<string>, connectionProvider: () => Promise<WebApi>, userAgentProvider: () => string) {
+function configureWorkItemTools(
+  server: McpServer,
+  tokenProvider: () => Promise<string>,
+  authorizationHeaderProviderOrConnectionProvider: (() => Promise<string>) | (() => Promise<WebApi>),
+  connectionProviderOrUserAgentProvider?: (() => Promise<WebApi>) | (() => string),
+  maybeUserAgentProvider?: () => string
+) {
+  const authorizationHeaderProvider = maybeUserAgentProvider ? (authorizationHeaderProviderOrConnectionProvider as () => Promise<string>) : async () => `Bearer ${await tokenProvider()}`;
+
+  const connectionProvider = (
+    maybeUserAgentProvider ? (connectionProviderOrUserAgentProvider as () => Promise<WebApi>) : (authorizationHeaderProviderOrConnectionProvider as () => Promise<WebApi>)
+  ) as () => Promise<WebApi>;
+
+  const userAgentProvider = maybeUserAgentProvider ? maybeUserAgentProvider : ((connectionProviderOrUserAgentProvider as (() => string) | undefined) ?? (() => ""));
+
   server.tool(
     WORKITEM_TOOLS.list_backlogs,
     "Revieve a list of backlogs for a given project and team.",
@@ -231,7 +245,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
       const connection = await connectionProvider();
 
       const orgUrl = connection.serverUrl;
-      const accessToken = await tokenProvider();
+      const authorizationHeader = await authorizationHeaderProvider();
 
       const body = {
         text: comment,
@@ -241,7 +255,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
       const response = await fetch(`${orgUrl}/${project}/_apis/wit/workItems/${workItemId}/comments?format=${formatParameter}&api-version=${markdownCommentsApiVersion}`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": authorizationHeader,
           "Content-Type": "application/json",
           "User-Agent": userAgentProvider(),
         },
@@ -281,7 +295,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
       try {
         const connection = await connectionProvider();
         const orgUrl = connection.serverUrl;
-        const accessToken = await tokenProvider();
+        const authorizationHeader = await authorizationHeaderProvider();
 
         if (items.length > 50) {
           return {
@@ -367,7 +381,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
         const response = await fetch(`${orgUrl}/_apis/wit/$batch?api-version=${batchApiVersion}`, {
           method: "PATCH",
           headers: {
-            "Authorization": `Bearer ${accessToken}`,
+            "Authorization": authorizationHeader,
             "Content-Type": "application/json",
             "User-Agent": userAgentProvider(),
           },
@@ -669,7 +683,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
     async ({ updates }) => {
       const connection = await connectionProvider();
       const orgUrl = connection.serverUrl;
-      const accessToken = await tokenProvider();
+      const authorizationHeader = await authorizationHeaderProvider();
 
       // Extract unique IDs from the updates array
       const uniqueIds = Array.from(new Set(updates.map((update) => update.id)));
@@ -706,7 +720,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
       const response = await fetch(`${orgUrl}/_apis/wit/$batch?api-version=${batchApiVersion}`, {
         method: "PATCH",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": authorizationHeader,
           "Content-Type": "application/json",
           "User-Agent": userAgentProvider(),
         },
@@ -749,7 +763,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
     async ({ project, updates }) => {
       const connection = await connectionProvider();
       const orgUrl = connection.serverUrl;
-      const accessToken = await tokenProvider();
+      const authorizationHeader = await authorizationHeaderProvider();
 
       // Extract unique IDs from the updates array
       const uniqueIds = Array.from(new Set(updates.map((update) => update.id)));
@@ -778,7 +792,7 @@ function configureWorkItemTools(server: McpServer, tokenProvider: () => Promise<
       const response = await fetch(`${orgUrl}/_apis/wit/$batch?api-version=${batchApiVersion}`, {
         method: "PATCH",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": authorizationHeader,
           "Content-Type": "application/json",
           "User-Agent": userAgentProvider(),
         },

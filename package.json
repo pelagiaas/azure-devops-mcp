@@ -1,14 +1,14 @@
 {
-  "name": "@azure-devops/mcp",
-  "version": "2.2.0",
+  "name": "@pelagiaas/azure-devops-mcp",
+  "version": "2.2.0-pelagia.0",
   "description": "MCP server for interacting with Azure DevOps",
   "license": "MIT",
   "author": "Microsoft Corporation",
-  "homepage": "https://github.com/microsoft/azure-devops-mcp",
-  "bugs": "https://github.com/microsoft/azure-devops-mcp/issues",
+  "homepage": "https://github.com/pelagiaas/azure-devops-mcp",
+  "bugs": "https://github.com/pelagiaas/azure-devops-mcp/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/microsoft/azure-devops-mcp.git"
+    "url": "https://github.com/pelagiaas/azure-devops-mcp.git"
   },
   "type": "module",
   "bin": {
@@ -18,7 +18,8 @@
     "dist"
   ],
   "publishConfig": {
-    "access": "public"
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
   },
   "scripts": {
     "preinstall": "npm config set registry https://registry.npmjs.org/",
