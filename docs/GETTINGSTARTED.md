@@ -71,8 +71,8 @@ In your project, add a `.vscode\mcp.json` file with the following content:
   "servers": {
     "ado": {
       "type": "stdio",
-  "command": "npx",
-  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
+      "command": "npx",
+      "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
     }
   }
 }
@@ -109,7 +109,7 @@ Prefer to skip the interactive sign-in flow? You can launch the MCP server with 
 3. **Start the server with PAT auth**
    - When using `npx`, pass the authentication flag:
      ```sh
-  npx -y @pelagiaas/azure-devops-mcp@2.2.0-pelagia.0 <your-org> --authentication pat
+     npx -y @pelagiaas/azure-devops-mcp@2.2.0-pelagia.0 <your-org> --authentication pat
      ```
    - If you're using a `.vscode/mcp.json`, add the flag to the `args` array:
      ```json
@@ -118,7 +118,7 @@ Prefer to skip the interactive sign-in flow? You can launch the MCP server with 
          "ado": {
            "type": "stdio",
            "command": "npx",
-          "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}", "--authentication", "pat"]
+           "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}", "--authentication", "pat"]
          }
        }
      }
@@ -163,8 +163,8 @@ Edit or add `.vscode/mcp.json`:
   "servers": {
     "ado": {
       "type": "stdio",
-  "command": "npx",
-  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
+      "command": "npx",
+      "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
     }
   }
 }
@@ -208,8 +208,8 @@ Add a `.mcp.json` file to the solution folder with the following content:
   "servers": {
     "ado": {
       "type": "stdio",
-  "command": "npx",
-  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
+      "command": "npx",
+      "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "${input:ado_org}"]
     }
   }
 }
@@ -265,7 +265,7 @@ Open the configuration file in your preferred editor (e.g., VS Code) and add the
   "mcpServers": {
     "ado": {
       "command": "npx",
-  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "{Contoso}"]
+      "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "{Contoso}"]
     }
   }
 }
@@ -290,7 +290,7 @@ To integrate the Azure DevOps MCP Server with Cursor, create a `.cursor\mcp.json
   "mcpServers": {
     "ado": {
       "command": "npx",
-  "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "{Contoso}"]
+      "args": ["-y", "@pelagiaas/azure-devops-mcp@2.2.0-pelagia.0", "{Contoso}"]
     }
   }
 }
