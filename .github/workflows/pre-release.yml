@@ -2,6 +2,7 @@ name: Nightly Pre-release
 
 permissions:
   contents: read
+  packages: write # Required for publishing to GitHub Packages
   id-token: write # Required for OIDC
 
 on:
@@ -21,7 +22,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@pelagiaas"
 
       # npm 11.5.1 or later is required for OIDC integration
       - name: Update npm
@@ -36,9 +38,11 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Publish to npm with nightly version
+      - name: Publish to GitHub Packages with nightly version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PACKAGE_TOKEN }}
         run: |
           DATE_STRING=$(date +%Y%m%d)
           CURRENT_VERSION=$(npm pkg get version | tr -d '"')
           npm version "$CURRENT_VERSION-nightly.$DATE_STRING" --no-git-tag-version
-          npm publish --access public --tag nightly --tag next --provenance
+          npm publish --tag nightly --tag next
